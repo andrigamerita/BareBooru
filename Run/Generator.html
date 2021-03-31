@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+
+<!--
+# | BareBooru
+# | Minimalistic and flexible media tagging tool
+# |
+# | Copyright (C) 2021, OctoSpacc
+# | Licensed under the AGPLv3
+-->
+
+<html lang="en">
+	<head>
+		<title>[BareBooru/Config/Customization/Name]</title>
+		<meta name="description" content="[BareBooru/Config/Customization/Description]">
+		<meta property="og:title" content="[BareBooru/Config/Customization/Name]">
+		<meta property="og:description" content="[BareBooru/Config/Customization/Description]">
+		<meta property="og:url" content="">
+		<meta property="og:image" content="">
+
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="shortcut icon" href="favicon.png" type="image/x-icon">
+		<link href="Main.css" rel="stylesheet">
+	</head>
+
+	<body>
+		<div id="TopNav">
+			<a href="/?Admin=Add">Add Media</a>
+			<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+
+			<form id="SearchBar">
+					<input type="submit" value="&#128269;" />
+					<input type="text" name="Search" required="yes" placeholder="Search..." />
+			</form>
+			<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+
+			<h2 id="TopNavTitle">[BareBooru/Config/Customization/Name]</h2>
+			
+			<!-- <a href="[BareBooru/Config/Customization/SourceCode]">Source Code</a> -->
+
+			
+			<!-- form id="RefreshDBForm">
+				<input type="submit" value="Refresh database" />
+				<input type="hidden" name="RefreshDB" />
+			</form -->
+
+			<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+		</div>
+
+		<div id="MainNav"><br />
+			[BareBooru/Engine/MainNav]
+
+			<form id="PageChooser">
+			</form>
+
+			<form id="SearchResults">
+					<input type="submit" name="DummySelection" value="Send" /><br />
+					<div class="ThumbnailDiv"><input type="checkbox" class="ThumbnailBox" name="id0" /><img for="id0" class="Thumbnail" src="" /></div>
+					<div class="ThumbnailDiv"><input type="checkbox" class="ThumbnailBox" name="id1" /><img for="id1" class="Thumbnail" src="" /></div>
+					<div class="ThumbnailDiv"><input type="checkbox" class="ThumbnailBox" name="id2" /><img for="id2" class="Thumbnail" src="" /></div>
+			</form>
+		</div>
+	</body>
+</html>

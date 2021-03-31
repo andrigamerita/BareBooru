@@ -1,0 +1,17 @@
+{
+	"Customization": {
+		"Name": "BareBooru",
+		"Description": "Minimalistic and flexible media tagging tool",
+		"Source Code": "https://gitlab.com/octospacc/BareBooru",
+		"Items Per Page": 20
+	},
+
+	"Security": {
+		"Password": "PleaseChangeMe"
+	},
+
+	"Server": {
+		"Address and Port": ["", 4845],
+		"Threads": 16
+	}
+}
