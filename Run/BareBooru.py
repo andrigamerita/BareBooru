@@ -10,7 +10,7 @@
 
 import json
 import sqlite3
-from urllib import parse as URLParse
+from urllib.parse import parse_qs as URLParse
 from os import walk, path, system
 from http.server import BaseHTTPRequestHandler
 from Include.multithread_http_server import MultiThreadHttpServer
@@ -61,28 +61,48 @@ def PatchGeneratorHTML():
 # Reading GET requests and responding accordingly.
 def ReadGETParameters(RequestPath):
 	if RequestPath.lower() == "/" or RequestPath == "/index.html":
-		return PatchGeneratorHTML().replace("[BareBooru/Engine/MainNav]", "").replace("[BareBooru/Engine/SearchText]", "").encode("utf-8")
+		DB = DBConnect()
+		DBTotalItemsCount = DBRead(DB, "COUNT() FROM Items")[0][0]
+		DBTotalTagCount = DBRead(DB, "COUNT(DISTINCT Tag) FROM Items")[0][0]
+		DBTags = DBRead(DB, "DISTINCT Tag FROM Items")
+		DB.close()
+
+		HTMLMainNav = '''
+			<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+			<span><strong>''' + str(DBTotalItemsCount) + '''</strong> Total <strong>Items</strong> | </span>
+			<span><strong>''' + str(DBTotalTagCount) + '''</strong> Total <strong>Tags</strong></span>
+			<p><strong>All Tags</strong><br />
+		'''
+
+		for DBTagIndex in range(len(DBTags)):
+			HTMLMainNav += '<a href="/?Search=' + str(DBTags[DBTagIndex][0]) + '">' + str(DBTags[DBTagIndex][0]) + '</a>'
+			if DBTagIndex < len(DBTags)-1:
+					HTMLMainNav += '<br />'
+		HTMLMainNav += '</p>'
+
+		return PatchGeneratorHTML().replace("[BareBooru/Engine/MainNav]", HTMLMainNav).replace("[BareBooru/Engine/SearchText]", "").encode("utf-8")
 
 	elif RequestPath.lower() == "/main.css":
 		return MainCSS.encode("utf-8")
 
 	elif RequestPath.lower().startswith("/?content="):
 		try:
-			with open("Data/Cache/" + URLParse.parse_qs(RequestPath.lower())["/?contentcache"][0], "rb") as ContentFile:
+			with open("Data/Files/" + URLParse(RequestPath.lower())["/?content"][0], "rb") as ContentFile:
 				return ContentFile.read()
 		except:
 			print("[D] Failed loading " + RequestPath.lower())
 
 	elif RequestPath.lower().startswith("/?contentcache="):
 		try:
-			with open("Data/Cache/" + URLParse.parse_qs(RequestPath.lower())["/?contentcache"][0], "rb") as ContentFile:
+			with open("Data/Cache/" + URLParse(RequestPath.lower())["/?contentcache"][0], "rb") as ContentFile:
 				return ContentFile.read()
 		except:
 			print("[D] Failed loading " + RequestPath.lower())
 
 	elif RequestPath.lower().startswith("/?search="):
 		HTMLMainNav = ""
-		RequestPathDict = URLParse.parse_qs(RequestPath.lower())
+		DBExceptString = ""
+		RequestPathDict = URLParse(RequestPath.lower())
 
 		if "/?search" in RequestPathDict:
 			SearchTokens = RequestPathDict["/?search"][0]
@@ -90,17 +110,16 @@ def ReadGETParameters(RequestPath):
 			SearchTokens = "*"
 		SearchTokensList = SearchTokens.split(" ")
 
-		DBExceptString = ""
 		if "-" in SearchTokens:
 			ExceptTokensList = []
 			DBExceptString += "EXCEPT SELECT * FROM Items WHERE Tag LIKE "
 
 			for SearchTokenIndex in range(len(SearchTokensList)):
 				if "-" in SearchTokensList[SearchTokenIndex]:
-					ExceptTokensList += [SearchTokensList[SearchTokenIndex]]
+					ExceptTokensList += [SearchTokensList[SearchTokenIndex].replace("-", "")]
 
 			for ExceptTokenIndex in range(len(ExceptTokensList)):
-				DBExceptString += '"' + SearchTokensList[SearchTokenIndex] + '"'
+				DBExceptString += '"' + ExceptTokensList[ExceptTokenIndex] + '"'
 				if ExceptTokenIndex < len(ExceptTokensList)-1:
 					DBReadString += " OR Tag LIKE "
 
@@ -127,8 +146,6 @@ def ReadGETParameters(RequestPath):
 			else:
 				ResponsePageCount = int(len(DBSelection)/ItemsPerPage) + 1
 
-		HTMLMainNav = '<form id="PageChooser"><input type="hidden" name="Search" value="[BareBooru/Engine/SearchText]" />'
-
 		if "page" not in RequestPathDict or int(RequestPathDict["/?page"][0]) <= 1:
 			RequestPageNumber = 1
 
@@ -150,26 +167,28 @@ def ReadGETParameters(RequestPath):
 		HTMLMainNav += '''
 			<!-- /form -->
 			<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-			<span>Results: ''' + str(len(DBSelection)) + '''</span>
+			<span><strong>''' + str(len(DBSelection)) + '''</strong> <strong>Items</strong></span>
 			<h4>[BareBooru/Engine/SearchText]</h4>
 			<form id="SearchResults">
 			<!-- input type="submit" name="DummySelection" value="Send" /><br /><br /-->
 		'''
 
-		print(SearchTokens)
-		print(SearchTokensList)
-		print(DBSelection)
-
 		for DBItem in DBSelection:
-			print(DBItem)
-			HTMLMainNav += '<div class="ThumbnailDiv"><input type="hidden" class="ThumbnailBox" name="Item' + str(DBItem[1]) + '" /><img for="Item' + str(DBItem[1])+ '" class="Thumbnail" src="' + "/?Content=" + str(DBItem[3]) + '" /><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>'
+			HTMLMainNav += '<div class="ThumbnailDiv"><input type="hidden" class="ThumbnailBox" name="Item' + str(DBItem[1]) + '" /><img for="Item' + str(DBItem[1])+ '" class="Thumbnail" src="' + "/?Content=" + str(DBItem[3]) + '" /><span>&nbsp;&nbsp;&nbsp;&nbsp;</span></div>'
 		HTMLMainNav += '</form>'
 
 		return PatchGeneratorHTML().replace("[BareBooru/Engine/MainNav]", HTMLMainNav).replace("[BareBooru/Engine/SearchText]", SearchTokens).encode("utf-8")
 
-	elif RequestPath.lower().startswith("/?edit"):
+	elif RequestPath.lower().startswith("/?edit"): # SELECT MAX(ID) FROM Items
+		RequestPathDict = URLParse(RequestPath.lower())
+
 		HTMLMainNav = ""
-		RequestPathDict = URLParse.parse_qs(RequestPath.lower())
+
+		if "/?edit" in RequestPathDict:
+			pass #RequestPathDict["/?edit"][0]
+		else:
+			pass
+
 		return "r".encode("utf-8")
 
 	return None

@@ -7,7 +7,7 @@
 	},
 
 	"Security": {
-		"Password": "PleaseChangeMe"
+		"Read-Only": true
 	},
 
 	"Server": {
