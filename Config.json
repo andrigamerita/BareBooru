@@ -3,7 +3,7 @@
 		"Name": "BareBooru",
 		"Description": "Minimalistic and flexible media tagging tool",
 		"Source Code": "https://gitlab.com/octospacc/BareBooru",
-		"Items Per Page": 20
+		"Items Per Page": 30
 	},
 
 	"Security": {

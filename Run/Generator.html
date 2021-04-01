@@ -25,19 +25,21 @@
 
 	<body>
 		<div id="TopNav">
-			<a href="/?Admin=Add">Add Media</a>
+			<a href="[BareBooru/Config/Customization/SourceCode]">Source Code</a>
+			<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+			<a href="/?Edit">Add Media</a>
 			<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
 
 			<form id="SearchBar">
+					<!-- label for="" >Items Per Page:</label><input type="number" value="20" min="0" /-->
 					<input type="submit" value="&#128269;" />
-					<input type="text" name="Search" required="yes" placeholder="Search..." />
+					<input type="text" name="Search" placeholder="Search..." value="[BareBooru/Engine/SearchText]" />
 			</form>
 			<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
 
-			<h2 id="TopNavTitle">[BareBooru/Config/Customization/Name]</h2>
+			<h2 id="TopNavTitle"><a id="TopNavTitle" href="/">[BareBooru/Config/Customization/Name]</a></h2>
 			
 			<!-- <a href="[BareBooru/Config/Customization/SourceCode]">Source Code</a> -->
-
 			
 			<!-- form id="RefreshDBForm">
 				<input type="submit" value="Refresh database" />
@@ -50,15 +52,23 @@
 		<div id="MainNav"><br />
 			[BareBooru/Engine/MainNav]
 
-			<form id="PageChooser">
+			<!-- form id="PageChooser">
+				<input type="hidden" name="Search" value="[BareBooru/Engine/SearchText]" />
+				<span>&nbsp;</span><input type="submit" name="Page" value="1" />
+				<span>&nbsp;</span><input type="submit" name="Page" value="2" />
+				<span>&nbsp;</span><strong>3</strong>
+				<span>&nbsp;</span><input type="submit" name="Page" value="4" />
 			</form>
 
+			<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+			<h4 class="Inline">[BareBooru/Engine/SearchText]</h4>
+
 			<form id="SearchResults">
-					<input type="submit" name="DummySelection" value="Send" /><br />
-					<div class="ThumbnailDiv"><input type="checkbox" class="ThumbnailBox" name="id0" /><img for="id0" class="Thumbnail" src="" /></div>
+					<input type="submit" name="DummySelection" value="Send" /><br /><br />
+					<div class="ThumbnailDiv"><input type="checkbox" class="ThumbnailBox" name="id0" /><img for="id0" class="Thumbnail" src="https://assets.gitlab-static.net/uploads/-/system/user/avatar/6083316/avatar.png" /></div>
 					<div class="ThumbnailDiv"><input type="checkbox" class="ThumbnailBox" name="id1" /><img for="id1" class="Thumbnail" src="" /></div>
 					<div class="ThumbnailDiv"><input type="checkbox" class="ThumbnailBox" name="id2" /><img for="id2" class="Thumbnail" src="" /></div>
-			</form>
+			</form -->
 		</div>
 	</body>
 </html>

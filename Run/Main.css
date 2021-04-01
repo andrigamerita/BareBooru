@@ -35,6 +35,10 @@ html {
 }
 
 #TopNavTitle {
+	text-decoration: none;
+}
+
+#TopNavTitle, #RefreshDBForm, #PageChooser, .Inline {
 	display: inline;
 }
 

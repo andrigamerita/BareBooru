@@ -56,39 +56,120 @@ def PatchGeneratorHTML():
 	return HTMLGenerator.replace(
 		"[BareBooru/Config/Customization/Name]", Config["Customization"]["Name"]).replace(
 		"[BareBooru/Config/Customization/Description]", Config["Customization"]["Description"]).replace(
-		"[BareBooru/Config/Customization/SourceCode]", Config["Customization"]["Source Code"]
-	)
+		"[BareBooru/Config/Customization/SourceCode]", Config["Customization"]["Source Code"])
 
 # Reading GET requests and responding accordingly.
 def ReadGETParameters(RequestPath):
 	if RequestPath.lower() == "/" or RequestPath == "/index.html":
-		return PatchGeneratorHTML().encode("utf-8")
+		return PatchGeneratorHTML().replace("[BareBooru/Engine/MainNav]", "").replace("[BareBooru/Engine/SearchText]", "").encode("utf-8")
 
 	elif RequestPath.lower() == "/main.css":
 		return MainCSS.encode("utf-8")
 
-	elif RequestPath.lower().startswith("/?search="):
-		RequestPathDict = URLParse.parse_qs(RequestPath.lower())
-		SearchTokens = RequestPathDict["/?search"][0].split(" ")
+	elif RequestPath.lower().startswith("/?content="):
+		try:
+			with open("Data/Cache/" + URLParse.parse_qs(RequestPath.lower())["/?contentcache"][0], "rb") as ContentFile:
+				return ContentFile.read()
+		except:
+			print("[D] Failed loading " + RequestPath.lower())
 
-		DBReadString = "* FROM Items WHERE Tag LIKE "
-		for SearchTokenIndex in range(len(SearchTokens)):
-			DBReadString += "'" + SearchTokens[SearchTokenIndex] + "'"
-			if SearchTokenIndex < len(SearchTokens)-1:
-				DBReadString += " OR Tag LIKE "
+	elif RequestPath.lower().startswith("/?contentcache="):
+		try:
+			with open("Data/Cache/" + URLParse.parse_qs(RequestPath.lower())["/?contentcache"][0], "rb") as ContentFile:
+				return ContentFile.read()
+		except:
+			print("[D] Failed loading " + RequestPath.lower())
+
+	elif RequestPath.lower().startswith("/?search="):
+		HTMLMainNav = ""
+		RequestPathDict = URLParse.parse_qs(RequestPath.lower())
+
+		if "/?search" in RequestPathDict:
+			SearchTokens = RequestPathDict["/?search"][0]
+		else:
+			SearchTokens = "*"
+		SearchTokensList = SearchTokens.split(" ")
+
+		DBExceptString = ""
+		if "-" in SearchTokens:
+			ExceptTokensList = []
+			DBExceptString += "EXCEPT SELECT * FROM Items WHERE Tag LIKE "
+
+			for SearchTokenIndex in range(len(SearchTokensList)):
+				if "-" in SearchTokensList[SearchTokenIndex]:
+					ExceptTokensList += [SearchTokensList[SearchTokenIndex]]
+
+			for ExceptTokenIndex in range(len(ExceptTokensList)):
+				DBExceptString += '"' + SearchTokensList[SearchTokenIndex] + '"'
+				if ExceptTokenIndex < len(ExceptTokensList)-1:
+					DBReadString += " OR Tag LIKE "
+
+		if "*" in SearchTokens:
+			DBReadString = "* FROM Items " + DBExceptString
+		else:
+			DBReadString = "* FROM Items WHERE Tag LIKE "
+			for SearchTokenIndex in range(len(SearchTokensList)):
+				DBReadString += '"' + SearchTokensList[SearchTokenIndex] + '"'
+				if SearchTokenIndex < len(SearchTokensList)-1:
+					DBReadString += " OR Tag LIKE "
+			DBReadString += DBExceptString
 
 		DB = DBConnect()
 		DBSelection = DBRead(DB, DBReadString)
 		DB.close()
 
-		DBSelectionResults = [[], []]
+		ItemsPerPage = int(Config["Customization"]["Items Per Page"])
+		if len(DBSelection)/ItemsPerPage <= 0.0:
+			ResponsePageCount = 1
+		else:
+			if str(len(DBSelection)/ItemsPerPage) == str(float(int(len(DBSelection)/ItemsPerPage))):
+				ResponsePageCount = int(len(DBSelection)/ItemsPerPage)
+			else:
+				ResponsePageCount = int(len(DBSelection)/ItemsPerPage) + 1
 
-		GeneratedHTML = ""
+		HTMLMainNav = '<form id="PageChooser"><input type="hidden" name="Search" value="[BareBooru/Engine/SearchText]" />'
+
+		if "page" not in RequestPathDict or int(RequestPathDict["/?page"][0]) <= 1:
+			RequestPageNumber = 1
+
+		"""
+		if "page" in RequestPathDict and int(RequestPathDict["/?page"][0]) > 0:
+			HTMLMainNav += '''
+				
+			'''
+		else:
+			HTMLMainNav += '''<span>&nbsp;</span><strong>1</strong>'''
+			for PageNumber in range(ResponsePageCount):
+				if PageNumber < 5 and PageNumber != 0:
+					HTMLMainNav += '''<span>&nbsp;</span><input type="submit" name="Page" value="''' + str(PageNumber+1) + '''" />'''
+				else:
+					if PageNumber == ResponsePageCount-1:
+						HTMLMainNav += '''<span>&nbsp;</span><input type="submit" name="Page" value="''' + str(PageNumber+1) + '''" />'''
+		"""
+
+		HTMLMainNav += '''
+			<!-- /form -->
+			<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+			<span>Results: ''' + str(len(DBSelection)) + '''</span>
+			<h4>[BareBooru/Engine/SearchText]</h4>
+			<form id="SearchResults">
+			<!-- input type="submit" name="DummySelection" value="Send" /><br /><br /-->
+		'''
+
+		print(SearchTokens)
+		print(SearchTokensList)
+		print(DBSelection)
 
 		for DBItem in DBSelection:
-			pass
+			print(DBItem)
+			HTMLMainNav += '<div class="ThumbnailDiv"><input type="hidden" class="ThumbnailBox" name="Item' + str(DBItem[1]) + '" /><img for="Item' + str(DBItem[1])+ '" class="Thumbnail" src="' + "/?Content=" + str(DBItem[3]) + '" /><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>'
+		HTMLMainNav += '</form>'
 
-		#return PatchGeneratorHTML().replace("[BareBooru/Engine/MainNav]", GeneratedHTML).encode("utf-8")
+		return PatchGeneratorHTML().replace("[BareBooru/Engine/MainNav]", HTMLMainNav).replace("[BareBooru/Engine/SearchText]", SearchTokens).encode("utf-8")
+
+	elif RequestPath.lower().startswith("/?edit"):
+		HTMLMainNav = ""
+		RequestPathDict = URLParse.parse_qs(RequestPath.lower())
 		return "r".encode("utf-8")
 
 	return None
@@ -136,14 +217,7 @@ class ServerClass(BaseHTTPRequestHandler):
 
 def Main():
 	DB = DBConnect()
-	DBCreateTable(DB, """
-		CREATE TABLE IF NOT EXISTS "Items" (
-			"Tag"	TEXT,
-			"ID"	INTEGER NOT NULL,
-			"Info"	TEXT,
-			"File"	TEXT
-		);
-	""")
+	DBCreateTable(DB, 'CREATE TABLE IF NOT EXISTS "Items" ("Tag" TEXT, "ID" INTEGER NOT NULL, "Info" TEXT, "File" TEXT);')
 	DB.close()
 
 	try:
