@@ -42,13 +42,13 @@ html {
 	display: inline;
 }
 
-#RefreshDBForm {
-	display: inline;
-}
-
 #RightTopNav {
 	display: block;
 	text-align: right;
+}
+
+.CenterBlock {
+	text-align: center;
 }
 
 #SearchBar {

@@ -84,11 +84,19 @@ def ReadGETParameters(RequestPath):
 
 	elif RequestPath.lower() == "/main.css":
 		return MainCSS.encode("utf-8")
+	elif RequestPath.lower() == "/ui/quicksand-latin.woff2":
+		return FontLatin
+	elif RequestPath.lower() == "/ui/quicksand-latinext.woff2":
+		return FontLatinExt
 
 	elif RequestPath.lower().startswith("/?content="):
 		try:
-			with open("Data/Files/" + URLParse(RequestPath.lower())["/?content"][0], "rb") as ContentFile:
-				return ContentFile.read()
+			if RequestPath.lower() == "/?content=barebooru.reserved.placeholder.png":
+				print("a")
+				return PlaceholderImage
+			else:
+				with open("Data/Files/" + URLParse(RequestPath.lower())["/?content"][0], "rb") as ContentFile:
+					return ContentFile.read()
 		except:
 			print("[D] Failed loading " + RequestPath.lower())
 
@@ -119,7 +127,7 @@ def ReadGETParameters(RequestPath):
 					ExceptTokensList += [SearchTokensList[SearchTokenIndex].replace("-", "")]
 
 			for ExceptTokenIndex in range(len(ExceptTokensList)):
-				DBExceptString += '"' + ExceptTokensList[ExceptTokenIndex] + '"'
+				DBExceptString += '"% ' + ExceptTokensList[ExceptTokenIndex] + ' %"'
 				if ExceptTokenIndex < len(ExceptTokensList)-1:
 					DBReadString += " OR Tag LIKE "
 
@@ -128,7 +136,7 @@ def ReadGETParameters(RequestPath):
 		else:
 			DBReadString = "* FROM Items WHERE Tag LIKE "
 			for SearchTokenIndex in range(len(SearchTokensList)):
-				DBReadString += '"' + SearchTokensList[SearchTokenIndex] + '"'
+				DBReadString += '"% ' + SearchTokensList[SearchTokenIndex] + ' %"'
 				if SearchTokenIndex < len(SearchTokensList)-1:
 					DBReadString += " OR Tag LIKE "
 			DBReadString += DBExceptString
@@ -174,22 +182,38 @@ def ReadGETParameters(RequestPath):
 		'''
 
 		for DBItem in DBSelection:
-			HTMLMainNav += '<div class="ThumbnailDiv"><input type="hidden" class="ThumbnailBox" name="Item' + str(DBItem[1]) + '" /><img for="Item' + str(DBItem[1])+ '" class="Thumbnail" src="' + "/?Content=" + str(DBItem[3]) + '" /><span>&nbsp;&nbsp;&nbsp;&nbsp;</span></div>'
+			ItemFileList = str(DBItem[3]).split(" ")
+			ItemFile = "BareBooru.Reserved.Placeholder.png"
+			for ItemFileToken in ItemFileList:
+				if type(ItemFileToken) == str and ItemFileToken != "":
+					ItemFile = ItemFileToken
+			HTMLMainNav += '<div class="ThumbnailDiv"><input type="hidden" class="ThumbnailBox" name="Item' + str(DBItem[0]) + '" /><img for="Item' + str(DBItem[0])+ '" class="Thumbnail" src="' + "/?Content=" + str(ItemFile) + '" /><span>&nbsp;&nbsp;&nbsp;&nbsp;</span></div>'
 		HTMLMainNav += '</form>'
 
 		return PatchGeneratorHTML().replace("[BareBooru/Engine/MainNav]", HTMLMainNav).replace("[BareBooru/Engine/SearchText]", SearchTokens).encode("utf-8")
 
-	elif RequestPath.lower().startswith("/?edit"): # SELECT MAX(ID) FROM Items
+	elif RequestPath.lower().startswith("/?edit"): 
 		RequestPathDict = URLParse(RequestPath.lower())
 
-		HTMLMainNav = ""
+		DB = DBConnect()
+		DBBiggestID = DBRead(DB, "MAX(ID) FROM Items")[0][0]
+		DB.close()
 
-		if "/?edit" in RequestPathDict:
-			pass #RequestPathDict["/?edit"][0]
+		if "/?edit" in RequestPathDict and RequestPathDict["/?edit"][0] <= DBBiggestID:
+			EditItemID = RequestPathDict["/?edit"][0]
 		else:
-			pass
+			EditItemID = DBBiggestID + 1
 
-		return "r".encode("utf-8")
+		HTMLMainNav = '''
+			<span>Specify an existing Item ID to edit it, leave empty to create new.</span>
+			<form id="EditItemForm">
+				<input type="text" name="EditItemID" placeholder="Item ID" />
+				<input type="submit" value="Edit / Add New Item" />
+			</form><br />
+			<span>Files of item: (URLs or local global paths)</span><br /><textarea rows="10" name="Files" form="EditItemForm"></textarea>
+		'''
+
+		return PatchGeneratorHTML().replace("[BareBooru/Engine/MainNav]", HTMLMainNav).replace("[BareBooru/Engine/SearchText]", "").encode("utf-8")
 
 	return None
 
@@ -224,7 +248,7 @@ class ServerClass(BaseHTTPRequestHandler):
 
 		if ResponseContent == None:
 			self.SetResponse(404, "text/html")
-			#ResponseContent = PatchHTML("Program/WebUI/Templates/404.html").replace("[HTML:RequestPath]", self.path).encode("utf-8")
+			ResponseContent = PatchGeneratorHTML().replace("[BareBooru/Engine/MainNav]", '<p class="CenterBlock"><strong>Error 404: </strong>Resource ' + self.path + ' not found.</p>').replace("[BareBooru/Engine/SearchText]", "").encode("utf-8")
 		else:
 			if self.path.lower().startswith("/?Search="):
 				self.SetResponse(200, ContentType, NoCache=True)
@@ -236,7 +260,7 @@ class ServerClass(BaseHTTPRequestHandler):
 
 def Main():
 	DB = DBConnect()
-	DBCreateTable(DB, 'CREATE TABLE IF NOT EXISTS "Items" ("Tag" TEXT, "ID" INTEGER NOT NULL, "Info" TEXT, "File" TEXT);')
+	DBCreateTable(DB, 'CREATE TABLE IF NOT EXISTS "Items" ("ID" INTEGER NOT NULL UNIQUE, "Tag" TEXT, "Info" TEXT, "File" TEXT, PRIMARY KEY("ID"));')
 	DB.close()
 
 	try:
@@ -252,23 +276,23 @@ if __name__ == "__main__":
 	try:
 		with open("Config.json", "r") as ConfigFile:
 			Config = json.load(ConfigFile)
-	except:
-		print("[E] Error loading Config.json; Cannot continue!")
-		exit()
-
-	try:
 		with open("Run/Generator.html", "r") as HTMLGeneratorFile:
 			HTMLGenerator = HTMLGeneratorFile.read()
 	except:
-		print("[E] Error loading Generator.html; Cannot continue!")
+		print("[E] Error loading Config.json or Generator.html; Cannot continue!")
 		exit()
 
 	try:
 		with open("Run/Main.css", "r") as MainCSSFile:
 			MainCSS = MainCSSFile.read()
+		with open("Run/UI/Quicksand-Latin.woff2", "rb") as FontLatinFile:
+			FontLatin = FontLatinFile.read()
+		with open("Run/UI/Quicksand-LatinExt.woff2", "rb") as FontLatinExtFile:
+			FontLatinExt = FontLatinExtFile.read()
+		with open("Run/UI/Placeholder.png", "rb") as PlaceholderImageFile:
+			PlaceholderImage = PlaceholderImageFile.read()
 	except:
-		print("[E] Error loading Generator.html; Cannot continue!")
-		exit()
+		print("[E] Error loading Main.css or Quicksand-Latin.woff2 or Quicksand-LatinExt.woff2 or Placeholder.png; WebUI will be broken!")
 
 	DB = DBConnect()
 	DB.close()
