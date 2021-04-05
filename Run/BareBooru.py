@@ -63,20 +63,25 @@ def ReadGETParameters(RequestPath):
 	if RequestPath.lower() == "/" or RequestPath == "/index.html":
 		DB = DBConnect()
 		DBTotalItemsCount = DBRead(DB, "COUNT() FROM Items")[0][0]
-		DBTotalTagCount = DBRead(DB, "COUNT(DISTINCT Tag) FROM Items")[0][0]
-		DBTags = DBRead(DB, "DISTINCT Tag FROM Items")
+		DBItemsTags = DBRead(DB, "DISTINCT Tag FROM Items")
 		DB.close()
+
+		DBTagList = []
+		for ItemTags in DBItemsTags:
+			for Tag in ItemTags[0].split(" "):
+				if Tag not in DBTagList and Tag != "":
+					DBTagList += [Tag]
 
 		HTMLMainNav = '''
 			<span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
 			<span><strong>''' + str(DBTotalItemsCount) + '''</strong> Total <strong>Items</strong> | </span>
-			<span><strong>''' + str(DBTotalTagCount) + '''</strong> Total <strong>Tags</strong></span>
+			<span><strong>''' + str(len(DBTagList)) + '''</strong> Total <strong>Tags</strong></span>
 			<p><strong>All Tags</strong><br />
 		'''
 
-		for DBTagIndex in range(len(DBTags)):
-			HTMLMainNav += '<a href="/?Search=' + str(DBTags[DBTagIndex][0]) + '">' + str(DBTags[DBTagIndex][0]) + '</a>'
-			if DBTagIndex < len(DBTags)-1:
+		for DBTagIndex in range(len(DBTagList)):
+			HTMLMainNav += '<a href="/?Search=' + str(DBTagList[DBTagIndex]) + '">' + str(DBTagList[DBTagIndex]) + '</a>'
+			if DBTagIndex < len(DBTagList)-1:
 					HTMLMainNav += '<br />'
 		HTMLMainNav += '</p>'
 
@@ -192,25 +197,40 @@ def ReadGETParameters(RequestPath):
 
 		return PatchGeneratorHTML().replace("[BareBooru/Engine/MainNav]", HTMLMainNav).replace("[BareBooru/Engine/SearchText]", SearchTokens).encode("utf-8")
 
-	elif RequestPath.lower().startswith("/?edit"): 
+	elif RequestPath.lower().startswith("/?edit"):
+		HTMLMainNav = ""
 		RequestPathDict = URLParse(RequestPath.lower())
 
 		DB = DBConnect()
+		DBSmallestID = DBRead(DB, "MIN(ID) FROM Items")[0][0]
 		DBBiggestID = DBRead(DB, "MAX(ID) FROM Items")[0][0]
 		DB.close()
 
-		if "/?edit" in RequestPathDict and RequestPathDict["/?edit"][0] <= DBBiggestID:
-			EditItemID = RequestPathDict["/?edit"][0]
-		else:
-			EditItemID = DBBiggestID + 1
+		if "/?edititemid" in RequestPathDict:
+			EditItemID = int(RequestPathDict["/?edititemid"][0])
 
-		HTMLMainNav = '''
+			if DBSmallestID <= EditItemID <= DBBiggestID:
+				HTMLMainNav += '<p class="CenterBlock">Edited Item ' + str(EditItemID) + '.</p>'
+			else:
+				EditItemID = DBBiggestID + 1
+				HTMLMainNav += '<p class="CenterBlock">Added Item ' + str(EditItemID) + '.</p>'
+
+		else:
+			if "/?edit" in RequestPathDict and RequestPathDict["/?edit"][0] <= DBBiggestID:
+				EditItemID = RequestPathDict["/?edit"][0]
+			else:
+				EditItemID = DBBiggestID + 1
+
+		HTMLMainNav += '<p>Edit not yet implemented.</p>' 
+		'''
 			<span>Specify an existing Item ID to edit it, leave empty to create new.</span>
 			<form id="EditItemForm">
-				<input type="text" name="EditItemID" placeholder="Item ID" />
-				<input type="submit" value="Edit / Add New Item" />
+				<input type="number" name="EditItemID" placeholder="Item ID" value="''' + str(EditItemID) +'''"/>
+				<input type="submit" value="Edit / Add New Item" /><br /><br />
+				<span>Tags: </span><input class="WideBox" type="text" name="Tags" placeholder="Tags" />
 			</form><br />
-			<span>Files of item: (URLs or local global paths)</span><br /><textarea rows="10" name="Files" form="EditItemForm"></textarea>
+			<span>Files of item: (URLs or local global paths)</span><br />
+			<textarea class="WideBox" rows="10" name="Files" form="EditItemForm"></textarea>
 		'''
 
 		return PatchGeneratorHTML().replace("[BareBooru/Engine/MainNav]", HTMLMainNav).replace("[BareBooru/Engine/SearchText]", "").encode("utf-8")
